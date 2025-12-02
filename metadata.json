@@ -1,0 +1,5 @@
+{
+  "name": "美食滤镜 AI (GourmetLens)",
+  "description": "使用 Gemini 3 Pro 推理能力和 Nano Banana Pro 图像生成技术，将随手拍的美食照片转化为杂志级大片。",
+  "requestFramePermissions": []
+}
