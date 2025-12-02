@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, CostBreakdown } from "../types";
 
@@ -18,22 +19,45 @@ export interface AnalysisResponseWithUsage {
 /**
  * Step 1: Use Gemini 3 Pro (Preview) to think and analyze the image.
  */
-export const analyzeFoodImage = async (base64Image: string): Promise<AnalysisResponseWithUsage> => {
+export const analyzeFoodImage = async (base64Image: string, options?: { includeText: boolean }): Promise<AnalysisResponseWithUsage> => {
   const ai = getAIInstance();
   const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
+  const includeText = options?.includeText || false;
 
   const prompt = `
-    你是一位世界级的专业美食摄影师和修图师。
+    你是一位世界级的专业美食摄影师、修图师，同时也是一位极具感性的"生活美食家"和文艺作家。
     请分析这张美食照片。
+
+    任务目标：
     1. 识别菜品名称。
     2. 批评当前照片（光线、角度、畸变、质感）。特别关注常见的俯视拍摄畸变问题。
     3. 制定一个策略，使这张照片看起来像是一本高端美食杂志拍摄的（更好的景深、诱人的质感、专业的光线）。
     4. 创建一个具体的英文提示词（prompt），用于图像生成模型根据改进方案“重新拍摄”这道菜。
+    ${includeText ? `
+    5. [重要] 创作一句简短的、文艺的中文文案（literaryText）。
+       - 风格：文艺青年、热爱生活、治愈、精致。
+       - 避免俗套的广告语。要写出对生活瞬间的感悟，让人看了觉得"这不仅是食物，更是美好的生活"。
+       - 字数控制在 20 字以内。
+    ` : ''}
 
     请严格按照 JSON 格式返回。
     dishName, critique, improvementStrategy 必须使用简体中文。
-    generationPrompt 必须使用英文，以便生成模型更好地理解。
+    generationPrompt 必须使用英文。
   `;
+
+  const schemaProperties: any = {
+    dishName: { type: Type.STRING, description: "菜品名称" },
+    critique: { type: Type.STRING, description: "对当前光线、角度和构图的批评" },
+    improvementStrategy: { type: Type.STRING, description: "修复畸变和提升美感的计划" },
+    generationPrompt: { type: Type.STRING, description: "用于图像生成模型重新渲染场景的精确提示词（英文）" }
+  };
+
+  const requiredFields = ["dishName", "critique", "improvementStrategy", "generationPrompt"];
+
+  if (includeText) {
+      schemaProperties.literaryText = { type: Type.STRING, description: "一句文艺的、充满生活气息的中文短句" };
+      requiredFields.push("literaryText");
+  }
 
   try {
     const response = await ai.models.generateContent({
@@ -49,13 +73,8 @@ export const analyzeFoodImage = async (base64Image: string): Promise<AnalysisRes
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
-          properties: {
-            dishName: { type: Type.STRING, description: "菜品名称" },
-            critique: { type: Type.STRING, description: "对当前光线、角度和构图的批评" },
-            improvementStrategy: { type: Type.STRING, description: "修复畸变和提升美感的计划" },
-            generationPrompt: { type: Type.STRING, description: "用于图像生成模型重新渲染场景的精确提示词（英文）" }
-          },
-          required: ["dishName", "critique", "improvementStrategy", "generationPrompt"]
+          properties: schemaProperties,
+          required: requiredFields
         }
       }
     });

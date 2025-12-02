@@ -1,3 +1,4 @@
+
 export enum AppState {
   IDLE = 'IDLE',
   ANALYZING = 'ANALYZING',
@@ -11,6 +12,7 @@ export interface AnalysisResult {
   critique: string;
   improvementStrategy: string;
   generationPrompt: string;
+  literaryText?: string; // Optional field for the poetic text
 }
 
 export interface CostBreakdown {

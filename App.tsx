@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Camera, Upload, RefreshCw, Wand2, ChefHat, Info, Link as LinkIcon, ImagePlus, History as HistoryIcon, X, Trash2, Receipt } from 'lucide-react';
+import { Camera, Upload, RefreshCw, Wand2, ChefHat, Info, Link as LinkIcon, ImagePlus, History as HistoryIcon, X, Trash2, Receipt, PenTool } from 'lucide-react';
 import { AppState, AnalysisResult, CostBreakdown, HistoryItem } from './types';
 import { analyzeFoodImage, generateEnhancedFood, fileToBase64, urlToBase64 } from './services/geminiService';
 import { saveHistoryItem, getHistoryItems, deleteHistoryItem } from './services/historyDb';
@@ -22,6 +23,7 @@ const App: React.FC = () => {
   // Input State
   const [imageUrlInput, setImageUrlInput] = useState("");
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const [includeText, setIncludeText] = useState(true); // Default to true for the "Life Gourmet" vibe
 
   // History State
   const [showHistory, setShowHistory] = useState(false);
@@ -83,8 +85,8 @@ const App: React.FC = () => {
     try {
       setAppState(AppState.ANALYZING);
       
-      // Step 1: Analyze
-      const { result: analysisResult, cost: analysisCost, tokens } = await analyzeFoodImage(originalImage);
+      // Step 1: Analyze with options
+      const { result: analysisResult, cost: analysisCost, tokens } = await analyzeFoodImage(originalImage, { includeText });
       setAnalysis(analysisResult);
 
       setAppState(AppState.GENERATING);
@@ -312,7 +314,7 @@ const App: React.FC = () => {
         {/* Preview State */}
         {appState === AppState.IDLE && originalImage && (
           <div className="w-full max-w-xl animate-fade-in">
-             <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-8 bg-black/40 group">
+             <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-6 bg-black/40 group">
                <img src={originalImage} alt="Preview" className="w-full h-full object-contain" />
                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                  <button 
@@ -322,6 +324,28 @@ const App: React.FC = () => {
                    <Trash2 size={16} /> 移除
                  </button>
                </div>
+             </div>
+
+             {/* Options */}
+             <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-8 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="bg-brand-gold/10 p-2 rounded-lg text-brand-gold">
+                        <PenTool size={20} />
+                    </div>
+                    <div>
+                        <h4 className="text-white font-medium text-sm">文艺文案</h4>
+                        <p className="text-xs text-gray-400">添加"生活美食家"风格的诗意短句</p>
+                    </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                        type="checkbox" 
+                        className="sr-only peer"
+                        checked={includeText}
+                        onChange={(e) => setIncludeText(e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-gold"></div>
+                </label>
              </div>
              
              <button
@@ -337,7 +361,11 @@ const App: React.FC = () => {
         {/* Result State */}
         {appState === AppState.COMPLETE && originalImage && enhancedImage && analysis && (
           <div className="w-full animate-fade-in pb-20">
-            <ComparisonSlider beforeImage={originalImage} afterImage={enhancedImage} />
+            <ComparisonSlider 
+                beforeImage={originalImage} 
+                afterImage={enhancedImage} 
+                literaryText={analysis.literaryText}
+            />
 
             {/* Cost Tag */}
             {currentCost && (
